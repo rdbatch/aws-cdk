@@ -264,6 +264,13 @@ export interface FileSystemProps {
    * or set `@aws-cdk/aws-efs:denyAnonymousAccess` feature flag, otherwise true
    */
   readonly allowAnonymousAccess?: boolean;
+
+  /**
+   * Replication configuration for the file system.
+   * 
+   * @default - File system is not replicated
+   */
+  readonly replicationConfigurations?: FileSystemReplicationConfiguration[];
 }
 
 /**
@@ -288,6 +295,26 @@ export interface FileSystemAttributes {
    * @default - determined based on fileSystemId
    */
   readonly fileSystemArn?: string;
+}
+
+export interface FileSystemReplicationConfiguration {
+  /**
+   * Region in which to create the replica file system.
+   */
+  readonly region: string;
+
+  /**
+   * The ID of the file system that you want to use as a replication target. A new file system will be created in the 
+   * destination region if this is omitted.
+   */
+  readonly fileSystem?: IFileSystem;
+
+  /**
+   * The ID of the AWS Key Management Service (AWS KMS) key that you want to use to encrypt data in the destination Region.
+   *
+   * @default - No KMS key is used
+   */
+  readonly kmsKey?: kms.IKey;
 }
 
 enum ClientAction {
@@ -530,9 +557,13 @@ export class FileSystem extends FileSystemBase {
           }
           return this._fileSystemPolicy;
         },
-      }),
+      })
     });
     this._resource.applyRemovalPolicy(props.removalPolicy);
+    
+    if (props.replicationConfigurations) {
+      this._resource.replicationConfiguration = {destinations: props.replicationConfigurations.map(this.cfnReplicationConfiguration)}
+    }
 
     this.fileSystemId = this._resource.ref;
     this.fileSystemArn = this._resource.attrArn;
@@ -591,6 +622,14 @@ export class FileSystem extends FileSystemBase {
       fileSystem: this,
       ...accessPointOptions,
     });
+  }
+
+  private cfnReplicationConfiguration(props: FileSystemReplicationConfiguration): CfnFileSystem.ReplicationDestinationProperty {
+    return {
+      region: props.region,
+      fileSystemId: props.fileSystem?.fileSystemId,
+      kmsKeyId: props.kmsKey?.keyId
+    }
   }
 }
 
