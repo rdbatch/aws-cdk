@@ -875,3 +875,60 @@ test('anonymous access is prohibited by the @aws-cdk/aws-efs:denyAnonymousAccess
     },
   });
 });
+
+test('replication is configured when just a replication region is passed', () => {
+  // WHEN
+  new FileSystem(stack, 'EfsFileSystem', {
+    vpc,
+    replicationConfigurations: [{
+      region: 'us-east-2',
+    }],
+  });
+
+  // THEN
+  Template.fromStack(stack).hasResourceProperties('AWS::EFS::FileSystem', {
+    ReplicationConfiguration: {
+      Destinations: [
+        {
+          Region: 'us-east-2',
+        },
+      ],
+    },
+  });
+});
+
+test('replication is configured with a file system ID', () => {
+  // WHEN
+  const arn = stack.formatArn({
+    service: 'elasticfilesystem',
+    resource: 'file-system',
+    resourceName: 'fs-12912923',
+  });
+
+  const replicaFs = FileSystem.fromFileSystemAttributes(stack, 'existingFS', {
+    fileSystemArn: arn,
+    securityGroup: ec2.SecurityGroup.fromSecurityGroupId(stack, 'SG', 'sg-123456789', {
+      allowAllOutbound: false,
+    }),
+  });
+
+  new FileSystem(stack, 'EfsFileSystem', {
+    vpc,
+    replicationConfigurations: [{
+      region: 'us-east-2',
+      fileSystem: replicaFs
+    }],
+  });
+
+  // THEN
+  Template.fromStack(stack).hasResourceProperties('AWS::EFS::FileSystem', {
+    ReplicationConfiguration: {
+      Destinations: [
+        {
+          Region: 'us-east-2',
+          FileSystemId: 'fs-12912923',
+        },
+      ],
+    },
+  });
+});

@@ -267,7 +267,7 @@ export interface FileSystemProps {
 
   /**
    * Replication configuration for the file system.
-   * 
+   *
    * @default - File system is not replicated
    */
   readonly replicationConfigurations?: FileSystemReplicationConfiguration[];
@@ -297,6 +297,9 @@ export interface FileSystemAttributes {
   readonly fileSystemArn?: string;
 }
 
+/**
+ * Properties to configure replication to another file system.
+ */
 export interface FileSystemReplicationConfiguration {
   /**
    * Region in which to create the replica file system.
@@ -304,8 +307,8 @@ export interface FileSystemReplicationConfiguration {
   readonly region: string;
 
   /**
-   * The ID of the file system that you want to use as a replication target. A new file system will be created in the 
-   * destination region if this is omitted.
+   * The ID of the file system that you want to use as a replication target. If this is omitted, 
+   * a new file system will be created in the destination region.
    */
   readonly fileSystem?: IFileSystem;
 
@@ -557,12 +560,12 @@ export class FileSystem extends FileSystemBase {
           }
           return this._fileSystemPolicy;
         },
-      })
+      }),
     });
     this._resource.applyRemovalPolicy(props.removalPolicy);
-    
+
     if (props.replicationConfigurations) {
-      this._resource.replicationConfiguration = {destinations: props.replicationConfigurations.map(this.cfnReplicationConfiguration)}
+      this._resource.replicationConfiguration = { destinations: props.replicationConfigurations.map(this.cfnReplicationConfiguration) };
     }
 
     this.fileSystemId = this._resource.ref;
@@ -628,8 +631,8 @@ export class FileSystem extends FileSystemBase {
     return {
       region: props.region,
       fileSystemId: props.fileSystem?.fileSystemId,
-      kmsKeyId: props.kmsKey?.keyId
-    }
+      kmsKeyId: props.kmsKey?.keyId,
+    };
   }
 }
 
